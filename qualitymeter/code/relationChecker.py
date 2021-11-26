@@ -22,12 +22,12 @@ class realationListener(JavaParserLabeledListener):
     # To Get the nodes (better to say Methods)---------------------------------------------------------------
     def enterClassDeclaration(self, ctx: JavaParserLabeled.ClassDeclarationContext):
         self.__currentClass = ctx.IDENTIFIER().getText()
-        # print('entered class is:', self.__currentClass)
+        print('entered class is:', self.__currentClass)
 
     def enterMethodDeclaration(self, ctx: JavaParserLabeled.MethodDeclarationContext):
         self.__currentMethod = ctx.IDENTIFIER().getText()
         self.__nodes.append(ctx.IDENTIFIER().getText()+':'+self.__currentClass)
-        # print(self.__nodes)
+        print(self.__currentMethod)
 
     # To Get the edges (better to say relation between Methods)----------------------------------------------
     def enterFieldDeclaration(self, ctx: JavaParserLabeled.FieldDeclarationContext):
@@ -38,12 +38,28 @@ class realationListener(JavaParserLabeledListener):
             # print(self.__everyObjectAndItsClass)
 
     def enterExpression1(self, ctx: JavaParserLabeled.Expression1Context):
-        className = self.__everyObjectAndItsClass[ctx.expression().primary().getText()]
+        className = self.__currentClass
+        if ctx.expression().primary().getText() == 'this':
+            if isinstance(ctx.methodCall(), type(None)):
+                return
+            else:
+                className = self.__currentClass
+        elif ctx.expression().primary().getText() not in self.__everyObjectAndItsClass.keys():
+            return
+        else:
+            className = self.__everyObjectAndItsClass[ctx.expression().primary().getText()]
+
         methodName = ctx.methodCall().IDENTIFIER().getText()
-        self.__edges[self.__currentMethod+":"+self.__currentClass] = methodName+":"+className
-        # print(self.__edges)
+        if self.__currentMethod+":"+self.__currentClass in self.__edges.keys():
+            self.__edges[self.__currentMethod + ":" + self.__currentClass][1] += 1
+        else:
+            self.__edges[self.__currentMethod+":"+self.__currentClass] = [methodName+":"+className, 1]
+        print(self.__edges)
 
     def exitExpression3(self, ctx: JavaParserLabeled.Expression3Context):
         methodName = ctx.methodCall().IDENTIFIER().getText()
-        self.__edges[self.__currentMethod + ":" + self.__currentClass] = methodName + ":" + self.__currentClass
+        if self.__currentMethod + ":" + self.__currentClass in self.__edges.keys():
+            self.__edges[self.__currentMethod + ":" + self.__currentClass][1] += 1
+        else:
+            self.__edges[self.__currentMethod + ":" + self.__currentClass] = [methodName + ":" + self.__currentClass, 1]
         # print(self.__edges)
