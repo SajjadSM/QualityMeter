@@ -2,6 +2,7 @@ import os
 
 from antlr4 import *
 import networkx as nx
+import networkx.algorithms.community as nx_comm
 from qualitymeter.gen.javaLabeled.JavaLexer import JavaLexer
 from qualitymeter.gen.javaLabeled.JavaParserLabeled import JavaParserLabeled
 from relationChecker import realationListener
@@ -10,7 +11,8 @@ import re
 import argparse
 
 
-def compile_j(arg):
+def compile_j(arg, graph):
+
     # Stage 1 --------------------------------------------------------------------------------------------------------
     stream = FileStream(arg, encoding='utf8')  # Step 1.1: Load input source into stream
     lexer = JavaLexer(stream)  # Step 1.2: Create an instance of AssignmentStLexer
@@ -26,20 +28,23 @@ def compile_j(arg):
     # print('edges are :', my_listener.getEdges())
 
     # Stage 3 --------------------------------------------------------------------------------------------------------
-    graph = nx.Graph()
     add_nodes(graph, my_listener.getNodes())
     add_edges(graph, my_listener.getEdges())
     # print('Graph nodes are :', graph.nodes)
     # print('Graph edges are :', graph.edges)
 
-
 def main():
+    graph = nx.Graph()
+
     pattern = re.compile(r".+\.java$")
-    for root, subdirs, files in os.walk('test_cases'):
+    for root, subdirs, files in os.walk('.'):
         java_file_names = list(filter(lambda f: pattern.match(f), files))
         for el in java_file_names:
-            compile_j(os.path.join(root, el))
+            compile_j(os.path.join(root, el), graph)
 
+    # Measure modularity
+    q = nx_comm.modularity(graph, nx_comm.label_propagation_communities(graph))
+    print(q)
 
 if __name__ == '__main__':
     main()
