@@ -7,9 +7,10 @@ java_dataTypes_list = ['byte', 'short', 'int', 'long', 'float', 'double', 'boole
 
 class realationListener(JavaParserLabeledListener):
     def __init__(self):
-        self.__currentClass = ""
-        self.__currentMethod = ""
+        self.__currentClass = "None"
+        self.__currentMethod = "None"
         self.__everyObjectAndItsClass = {}
+        self.VariableDeclarator=""
         self.__nodes = []
         self.__edges = {}
 
@@ -22,12 +23,12 @@ class realationListener(JavaParserLabeledListener):
     # To Get the nodes (better to say Methods)---------------------------------------------------------------
     def enterClassDeclaration(self, ctx: JavaParserLabeled.ClassDeclarationContext):
         self.__currentClass = ctx.IDENTIFIER().getText()
-        print('entered class is:', self.__currentClass)
+        # print('entered class is:', self.__currentClass)
 
     def enterMethodDeclaration(self, ctx: JavaParserLabeled.MethodDeclarationContext):
         self.__currentMethod = ctx.IDENTIFIER().getText()
         self.__nodes.append(ctx.IDENTIFIER().getText()+':'+self.__currentClass)
-        print(self.__currentMethod)
+        # print(self.__currentMethod)
 
     # To Get the edges (better to say relation between Methods)----------------------------------------------
     def enterFieldDeclaration(self, ctx: JavaParserLabeled.FieldDeclarationContext):
@@ -37,8 +38,22 @@ class realationListener(JavaParserLabeledListener):
             self.__everyObjectAndItsClass[objectAddress] = objectClassAdress
             # print(self.__everyObjectAndItsClass)
 
+    def enterImportDeclaration(self, ctx: JavaParserLabeled.ImportDeclarationContext):
+        if ctx.qualifiedName().IDENTIFIER(0).getText() == 'java':
+            i = len(ctx.qualifiedName().IDENTIFIER())
+            java_dataTypes_list.append(ctx.qualifiedName().IDENTIFIER(i - 1).getText())
+            # print(ctx.qualifiedName().IDENTIFIER(i-1).getText())
+
+    # def enterVariableDeclarator(self, ctx: JavaParserLabeled.VariableDeclaratorContext):
+    #     self.VariableDeclarator = ctx.variableDeclaratorId().getText()
+    #
+    # def exitVariableDeclarator(self, ctx: JavaParserLabeled.VariableDeclaratorContext):
+    #     self.VariableDeclarator = 'none'
+
     def enterExpression1(self, ctx: JavaParserLabeled.Expression1Context):
         className = self.__currentClass
+        if '.' in ctx.expression().getText():
+            return
         if ctx.expression().primary().getText() == 'this':
             if isinstance(ctx.methodCall(), type(None)):
                 return
@@ -49,15 +64,26 @@ class realationListener(JavaParserLabeledListener):
         else:
             className = self.__everyObjectAndItsClass[ctx.expression().primary().getText()]
 
-        methodName = ctx.methodCall().IDENTIFIER().getText()
+        if isinstance(ctx.methodCall(), type(None)):
+            return
+        else:
+            methodName = ctx.methodCall().IDENTIFIER().getText()
+
         if self.__currentMethod+":"+self.__currentClass in self.__edges.keys():
             self.__edges[self.__currentMethod + ":" + self.__currentClass][1] += 1
         else:
             self.__edges[self.__currentMethod+":"+self.__currentClass] = [methodName+":"+className, 1]
-        print(self.__edges)
+        # print(self.__edges)
 
     def exitExpression3(self, ctx: JavaParserLabeled.Expression3Context):
-        methodName = ctx.methodCall().IDENTIFIER().getText()
+        if 'super' in ctx.methodCall().getText():
+            return
+
+        if isinstance(ctx.methodCall(), type(None)):
+            return
+        else:
+            methodName = ctx.methodCall().IDENTIFIER().getText()
+
         if self.__currentMethod + ":" + self.__currentClass in self.__edges.keys():
             self.__edges[self.__currentMethod + ":" + self.__currentClass][1] += 1
         else:
